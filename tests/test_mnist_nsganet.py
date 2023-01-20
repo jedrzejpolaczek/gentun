@@ -16,8 +16,8 @@ if __name__ == '__main__':
 
     from sklearn.preprocessing import LabelBinarizer
     from gentun import Population
-    from gentun.genetic_algorithms.russian_roulette_genetic_algorithm import RussianRouletteGA
-    from gentun.individuals.genetic_cnn_individual import GeneticCnnIndividual
+    from gentun.individuals.genetic_cnn_with_skip_individual import GeneticCnnWithSkipIndividual
+    from gentun.genetic_algorithms.nsga_net import NSGANet
 
     train_images = mnist.train_images()
     train_labels = mnist.train_labels()
@@ -30,10 +30,11 @@ if __name__ == '__main__':
     x_train = x_train / 255  # Normalize train data
 
     pop = Population(
-        GeneticCnnIndividual, x_train, y_train, size=20, crossover_rate=0.3, mutation_rate=0.1,
+        GeneticCnnWithSkipIndividual, x_train, y_train, size=20, crossover_rate=0.3, mutation_rate=0.1,
         additional_parameters={
             'kfold': 5, 'epochs': (20, 4, 1), 'learning_rate': (1e-3, 1e-4, 1e-5), 'batch_size': 32
         }, maximize=True
     )
-    ga = RussianRouletteGA(pop, crossover_probability=0.2, mutation_probability=0.8)
+    ga = NSGAnet(pop, crossover_probability=0.2, mutation_probability=0.8)
+
     ga.run(50)
