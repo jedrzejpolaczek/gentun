@@ -53,6 +53,12 @@ class Population(object):
 
     def get_size(self):
         return self.population_size
+    
+    def get_fronts_size(self):  # TODO: rethink if this should go here
+        return len(self.fronts)
+    
+    def get_front_size(self, front):  # TODO: rethink if this should go here
+        return len(front)
 
     def get_fittest(self):
         if self.maximize:

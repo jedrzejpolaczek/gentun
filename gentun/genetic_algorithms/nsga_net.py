@@ -109,44 +109,44 @@ class NSGANet(GeneticAlgorithm):
                 for individual in front:
                     individual.crowding_distance = 0
 
-                for m in range(len(front[0].get_fitness())):
-                    front.sort(key=lambda individual: individual.get_fitness())
-                    front[0].crowding_distance = 10 ** 9
-                    front[solutions_number - 1].crowding_distance = 10 ** 9
+                front.sort(key=lambda individual: individual.get_fitness())
+                front[0].crowding_distance = 10 ** 9
+                front[solutions_number - 1].crowding_distance = 10 ** 9
 
-                    fitness_values = [individual.get_fitness() for individual in front]
-                    scale = max(fitness_values) - min(fitness_values)
-                    if scale == 0: 
-                        scale = 1
+                fitness_values = [individual.get_fitness() for individual in front]
+                scale = max(fitness_values) - min(fitness_values)
+                if scale == 0: 
+                    scale = 1
 
-                    for i in range(1, solutions_number - 1):
-                        front[i].crowding_distance += (front[i + 1].get_fitness() - front[i - 1].get_fitness()) / scale
+                for i in range(1, solutions_number - 1):
+                    front[i].crowding_distance += (front[i + 1].get_fitness() - front[i - 1].get_fitness()) / scale
 
     def create_new_population(self, new_population):  # TODO: add typing and docstring
         """ """
         while new_population.get_size() < self.population.get_size():
-            print("Perform: Reproduction...")
-            child = self.reproduction()
+            for front in self.population.fronts:
+                print("Perform: Reproduction...")
+                child = self.reproduction(front)
 
-            print("Perform: Mutation...")
-            child.mutate()
+                print("Perform: Mutation...")
+                child.mutate()
 
-            new_population.add_individual(child)
+                new_population.add_individual(child)
         
         return new_population
 
-    def reproduction(self):  # TODO: add typing and docstring
+    def reproduction(self, front):  # TODO: add typing and docstring
         """Tournament, crossover and mutation"""
-        partner_one = self.tournament_select()
+        partner_one = self.tournament_select(front)
         partner_two = partner_one
         while partner_one == partner_two:
-                partner_two = self.tournament_select()
+                partner_two = self.tournament_select(front)
 
         child = partner_one.crossover(partner_two)
 
         return child
     
-    def tournament_select(self):  # TODO: add typing and docstring
+    def tournament_select(self, front):  # TODO: add typing and docstring
         """
 
 
@@ -154,7 +154,8 @@ class NSGANet(GeneticAlgorithm):
         """
         # Number of partners defined by tournament_size value
         random_crossover_partners=[
-                self.population[i] for i in random.sample(range(self.population.get_size()), self.tournament_size)
+                self.population.fronts[front][i] \
+                for i in random.sample(range(self.population.get_front_size(front)), self.tournament_size)
             ]
 
         tournament_participants = self.get_population_type()(
