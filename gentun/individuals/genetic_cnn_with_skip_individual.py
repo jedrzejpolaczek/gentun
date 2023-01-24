@@ -67,7 +67,7 @@ class GeneticCnnWithSkipIndividual(Individual):
         kfold: int = 5,
         epochs: tuple =(3,),
         learning_rate: float = (1e-3,),
-        batch_size: int = 32 
+        batch_size: int = 32,
     ):
         """
         Note:
@@ -115,6 +115,10 @@ class GeneticCnnWithSkipIndividual(Individual):
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.batch_size = batch_size
+        self.domination_count = None
+        self.dominated_solutions = None
+        self.rank = None
+        self.crowding_distance = None
 
     @staticmethod
     def generate_random_genome(nodes_per_stage: tuple) -> dict:
@@ -213,7 +217,11 @@ class GeneticCnnWithSkipIndividual(Individual):
             'kfold': self.kfold,
             'epochs': self.epochs,
             'learning_rate': self.learning_rate,
-            'batch_size': self.batch_size
+            'batch_size': self.batch_size,
+            'domination_count': self.domination_count,
+            'dominated_solutions': self.dominated_solutions,
+            'rank': self.rank,
+            'crowding_distance': self.crowding_distance
         }
 
     def mutate(self) -> None:
@@ -225,3 +233,51 @@ class GeneticCnnWithSkipIndividual(Individual):
             if new_connections != connections:
                 self.set_fitness(None)  # A mutation means the individual has to be re-evaluated
                 self.get_genes()[name] = new_connections
+    
+    def crossover(self, partner):
+        """Mix genes from self and partner randomly and
+        return a new instance of an individual. Do not
+        mutate parents.
+
+        Other possible implementation:
+        #     child1 = self.problem.generate_individual()
+        #     child2 = self.problem.generate_individual()
+        #     num_of_features = len(child1.features)
+        #     genes_indexes = range(num_of_features)
+        #     for i in genes_indexes:
+        #         beta = self.__get_beta()
+        #         x1 = (individual1.features[i] + individual2.features[i]) / 2
+        #         x2 = abs((individual1.features[i] - individual2.features[i]) / 2)
+        #         child1.features[i] = x1 + beta * x2
+        #         child2.features[i] = x1 - beta * x2
+        #     return child1, child2
+
+        We do not use beta parameter due to we only accept values 0 or 1 in genes.
+        """
+        assert self.__class__ == partner.__class__  # Can only reproduce if they're the same species
+        child_genes = {}
+
+        for name, value in self.get_genes().items():
+            # If probability hits, overwrite the child gene with the partner gene
+            if random.random() < self.crossover_rate:  
+                child_genes[name] = partner.get_genes()[name] 
+            # if no, keep gene value
+            else:
+                child_genes[name] = value
+        
+        # Create new same class individual
+        return self.__class__(
+            self.x_train, self.y_train, self.genome, child_genes, self.crossover_rate, self.mutation_rate,
+            **self.get_additional_parameters()
+        )
+
+    def dominates(self, other_individual):  # TODO: add typing and docstring
+        # TODO: check it
+        # and_condition = True
+        # or_condition = False
+        # for first, second in zip(self.objectives, other_individual.objectives):
+        #     and_condition = and_condition and first <= second
+        #     or_condition = or_condition or first < second
+        # return (and_condition and or_condition)
+
+        return (self.get_fitness() < other_individual.get_fitness())

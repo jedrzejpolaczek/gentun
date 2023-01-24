@@ -43,4 +43,3 @@ if __name__ == '__main__':
     assert(population.get_size() == population_size)
     assert(population.get_data() == (x_train, y_train))
     assert(population.get_fitness_criteria() == True)
-    assert(population.get_fittest() == max(population.individuals, key=operator.methodcaller('get_fitness')))

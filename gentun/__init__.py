@@ -31,3 +31,9 @@ try:
     from .models.genetic_cnn_with_skip_model import GeneticCnnWithSkipModel
 except ImportError:
     print("Warning: install Keras and TensorFlow to use GeneticCnnIndividual and GeneticCnnModel.")
+
+# Utils functions
+try:
+    from .utils import bayesian_optimization_algorithm
+except ImportError:
+    print("Warning: install utils to use bayesian_optimization_algorithm.")

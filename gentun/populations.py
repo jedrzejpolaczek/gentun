@@ -40,13 +40,15 @@ class Population(object):
             assert all([type(individual) is self.species for individual in individual_list])
             self.population_size = len(individual_list)
             self.individuals = individual_list
+        
+        self.fronts = []  # TODO: rethink if this should go here
 
     def add_individual(self, individual):
         assert type(individual) is self.species
         self.individuals.append(individual)
         self.population_size += 1
 
-    def get_species(self):
+    def get_species(self):  # In other (Python) words, object class
         return self.species
 
     def get_size(self):
