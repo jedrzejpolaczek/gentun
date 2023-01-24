@@ -14,6 +14,9 @@ if __name__ == '__main__':
     import mnist
     import random
 
+    import tensorflow
+    tensorflow.keras.utils.disable_interactive_logging()
+
     from sklearn.preprocessing import LabelBinarizer
     from gentun import Population
     from gentun.individuals.genetic_cnn_with_skip_individual import GeneticCnnWithSkipIndividual
@@ -29,12 +32,21 @@ if __name__ == '__main__':
     x_train = train_images.reshape(n, 28, 28, 1)[selection]
     x_train = x_train / 255  # Normalize train data
 
-    pop = Population(
-        GeneticCnnWithSkipIndividual, x_train, y_train, size=20, crossover_rate=0.3, mutation_rate=0.1,
+    population = Population(
+        GeneticCnnWithSkipIndividual, 
+        x_train, 
+        y_train, 
+        size=20, 
+        crossover_rate=0.3, 
+        mutation_rate=0.1,
         additional_parameters={
-            'kfold': 5, 'epochs': (20, 4, 1), 'learning_rate': (1e-3, 1e-4, 1e-5), 'batch_size': 32
-        }, maximize=True
+            'kfold': 5, 
+            'epochs': (5, 1), 
+            'learning_rate': (1e-3, 1e-4), 
+            'batch_size': 32
+        }, 
+        maximize=True
     )
-    ga = NSGAnet(pop, crossover_probability=0.2, mutation_probability=0.8)
+    ga = NSGANet(population, crossover_probability=0.2, mutation_probability=0.8)
 
     ga.run(50)

@@ -115,6 +115,7 @@ class GeneticCnnWithSkipIndividual(Individual):
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.batch_size = batch_size
+        
         self.domination_count = None
         self.dominated_solutions = None
         self.rank = None
@@ -281,3 +282,10 @@ class GeneticCnnWithSkipIndividual(Individual):
         # return (and_condition and or_condition)
 
         return (self.get_fitness() < other_individual.get_fitness())
+    
+    def crowding_operator(self, other_individual):  # TODO: add typing and docstring
+        first_individual_higher_rank = self.rank < other_individual.rank
+        individuals_equal_rank = self.rank == other_individual.rank
+        first_individual_crowding_distance = self.crowding_distance > other_individual.crowding_distance
+
+        return first_individual_higher_rank or (individuals_equal_rank and first_individual_crowding_distance)
