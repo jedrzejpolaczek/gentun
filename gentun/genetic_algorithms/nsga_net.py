@@ -4,6 +4,9 @@ NSGANet class.
 """
 
 import random
+import functools
+import numpy as np
+from loguru import logger
 
 try:
     from .genetic_algorithm import GeneticAlgorithm
@@ -24,6 +27,11 @@ class NSGANet(GeneticAlgorithm):
         super(NSGANet, self).__init__(population)
         self.crossover_probability = crossover_probability
         self.mutation_probability = mutation_probability
+        self.fitnesses = None
+        self.fronts = None
+        self.nondomination_ranks = None
+        self.crowding_distance_metrics = None
+        self.non_domiated_sorted_indicies = None
     
     def run(self, max_generations):  # TODO: add typing and docstring
         print("Starting genetic algorithm...\n")
@@ -37,130 +45,198 @@ class NSGANet(GeneticAlgorithm):
 
     def evolve_population(self):  # TODO: add typing and docstring
         if self.population.get_size() < self.tournament_size:
-            raise ValueError("Population size is smaller than tournament size.")
+            msg = "Population size is smaller than tournament size."
+            logger.error(msg)
+            raise ValueError(msg)
         
-        print("Evaluating generation #{}...".format(self.generation))
-        print("Population size: {}".format(self.population.get_size()))
-        print("Number of fronts: {}".format(self.population.get_fronts_size()))
-        print("Fittest individual overall is: {}".format(self.population.get_fittest()))
-        for i in range(self.population.get_fronts_size()):
-            print("Fittest individual for front {} is: {}".format(i, self.population.fronts[i].get_fittest()))
-        print("Fittest individual for front is: {}".format(self.population.get_fittest()))
-        print("Fitness value is: {}\n".format(round(self.population.get_fittest().get_fitness(), 4)))
+        logger.info("Evaluating generation #{}...".format(self.generation))
+        logger.info("Population size: {}".format(self.population.get_size()))
 
-        print("Perform: Non-dominated sorting...")
-        self.fast_nondominated_sort()
+        self.fitnesses = self.get_ftinesses()
 
-        print("Perform: Calculating crowding distance...")
-        self.crowding_distance()
+        # calculate the pareto fronts and crowding metrics
+        self.fronts = self.fast_nondominated_sort()
+        self.nondomination_ranks = self.fronts_to_nondomination_rank()
+        self.crowding_distance_metrics = self.calculate_crowding_distance_metrics()
+
+        # Sort the population
+        self.non_domiated_sorted_indicies = self.nondominated_sort()
         
-        print("Perform: Evolving population...")
-        current_population_copy = self.get_population_type()(
+        # evolving population
+        new_population = self.create_new_population()
+        
+        print("Perform: Saving new population as current population...")
+        self.population = new_population
+
+    def get_ftinesses(self) -> list:  # TODO: add typing and docstring
+        ftinesses = []
+        for individual in self.individuals:
+            ftinesses.append(individual.get_fitness())
+
+        return ftinesses
+
+    def fast_nondominated_sort(self) -> list:  # TODO: add typing and docstring
+        """
+        Calculate Pareto fronts
+        The population is sorted and partitioned into fronts (F1, F2, etc.), 
+        where F1 (first front) indicates the approximated Pareto front.
+        """
+        # Calculate dominated set for each individual
+        domination_sets = []
+        domination_counts = []
+        for fitness in self.fitnesses:
+            current_domination_set = set()
+            domination_counts.append(0)
+            for i, other_fitness in enumerate(self.fitnesses):
+                if self.dominates(fitness, other_fitness):
+                    current_domination_set.add(i)
+                elif self.dominates(other_fitness, fitness):
+                    domination_counts[-1] += 1
+
+            domination_sets.append(current_domination_set)
+        domination_counts = np.array(domination_counts)
+
+        fronts = []
+        while True:
+            current_front = np.where(domination_counts==0)[0]
+            if len(current_front) == 0:
+                logger.debug("Current front have no individuals")
+                break
+            logger.debug("Front: ", current_front)
+            fronts.append(current_front)
+
+            for individual in current_front:
+                # this individual is already accounted for, make it -1 so  ==0 will not find it anymore
+                domination_counts[individual] = -1 
+                dominated_by_current_set = domination_sets[individual]
+                for dominated_by_current in dominated_by_current_set:
+                    domination_counts[dominated_by_current] -= 1
+                
+        return fronts
+    
+    def dominates(self, individual, other_individual):  # TODO: add typing and docstring
+        larger_or_equal = individual.get_fitness() >= other_individual.get_fitness()
+        larger = individual.get_fitness() > other_individual.get_fitness()
+
+        return np.all(larger_or_equal) and np.any(larger)  # We are using np.all in case fitness would be array
+    
+    def fronts_to_nondomination_rank(self):  # TODO: add typing and docstring
+        nondomination_rank_dict = {}
+        for i, front in enumerate(self.fronts):
+            for x in front:   
+                nondomination_rank_dict[x] = i
+        return nondomination_rank_dict
+
+    def calculate_crowding_distance_metrics(self, fitnesses):  # TODO: add typing and docstring
+        """
+        Crowding Distance is a mechanism of ranking among members of a front, 
+        which are dominating or dominated by each other.
+        """
+        num_objectives = fitnesses.shape[1]
+        num_individuals = fitnesses.shape[0]
+        
+        # Normalise each objectives, so they are in the range [0,1]
+        # This is necessary, so each objective's contribution have the same magnitude to the crowding metric.
+        normalized_fitnesses = np.zeros_like(fitnesses)
+        for objective_i in range(num_objectives):
+            min_val = np.min(fitnesses[:,objective_i])
+            max_val = np.max(fitnesses[:,objective_i])
+            val_range = max_val - min_val
+            normalized_fitnesses[:,objective_i] = (fitnesses[:,objective_i] - min_val) / val_range
+        
+        fitnesses = normalized_fitnesses
+        crowding_distance_metrics = np.zeros(num_individuals)
+
+        for front in self.fronts:
+            for objective_i in range(num_objectives):
+                
+                sorted_front = sorted(front,key = lambda x : fitnesses[x,objective_i])
+                
+                crowding_distance_metrics[sorted_front[0]] = np.inf
+                crowding_distance_metrics[sorted_front[-1]] = np.inf
+                if len(sorted_front) > 2:
+                    for i in range(1,len(sorted_front)-1):
+                        crowding_distance_metrics[sorted_front[i]] += fitnesses[sorted_front[i+1],objective_i] - fitnesses[sorted_front[i-1],objective_i]
+
+        return crowding_distance_metrics
+
+    def nondominated_sort(self):  # TODO: add typing and docstring
+        
+        num_individuals = len(self.calculate_crowding_distance_metrics)
+        indicies = list(range(num_individuals))
+
+        def nondominated_compare(a,b):
+            # returns 1 if a dominates b, or if they equal, but a is less crowded
+            # return -1 if b dominates a, or if they equal, but b is less crowded
+            # returns 0 if they are equal in every sense
+            
+            
+            if self.nondomination_rank_dict[a] > self.nondomination_rank_dict[b]:  # domination rank, smaller better
+                return -1
+            elif self.nondomination_rank_dict[a] < self.nondomination_rank_dict[b]:
+                return 1
+            else:
+                # crowding metrics, larger better
+                if self.calculate_crowding_distance_metrics[a] < self.calculate_crowding_distance_metrics[b]:   
+                    return -1
+                elif self.calculate_crowding_distance_metrics[a] > self.calculate_crowding_distance_metrics[b]:
+                    return 1
+                else:
+                    return 0
+
+        # decreasing order, the best is the first
+        non_domiated_sorted_indicies = sorted(indicies,key = functools.cmp_to_key(nondominated_compare),reverse=True)
+
+        return non_domiated_sorted_indicies
+
+    def create_new_population(self):  # TODO: add typing and docstring
+        """Tournament, crossover and mutation"""
+        new_population = self.get_population_type()(
             self.population.get_species(), 
             self.x_train, 
             self.y_train, 
             individual_list=[],
             maximize=self.population.get_fitness_criteria()
         )
-        new_population = self.create_new_population(current_population_copy)
-        
-        print("Perform: Saving new population as current population...")
-        self.population = new_population
 
-    def fast_nondominated_sort(self):  # TODO: add typing and docstring
-        """
-        The population is sorted and partitioned into fronts (F1, F2, etc.), 
-        where F1 (first front) indicates the approximated Pareto front.
-        """
-        self.population.fronts = [[]]
-
-        # Calculate Pareto front
-        for individual in self.population.individuals:
-            individual.domination_count = 0
-            individual.dominated_solutions = []
-            for other_individual in self.population.individuals:
-                if individual == other_individual:
-                    continue
-                if individual.dominates(other_individual):
-                    individual.dominated_solutions.append(other_individual)
-                elif other_individual.dominates(individual):
-                    individual.domination_count += 1
-            if individual.domination_count == 0:
-                individual.rank = 0
-                self.population.fronts[0].append(individual)
-
-        # Calculate rest of the fronts
-        i = 0
-        while len(self.population.fronts[i]) > 0:
-            temp = []
-            for individual in self.population.fronts[i]:
-                for other_individual in individual.dominated_solutions:
-                    other_individual.domination_count -= 1
-                    if other_individual.domination_count == 0:
-                        other_individual.rank = i + 1
-                        temp.append(other_individual)
-            i = i + 1
-            self.population.fronts.append(temp)
-    
-    def crowding_distance(self):  # TODO: add typing and docstring
-        """
-        Crowding Distance is a mechanism of ranking among members of a front, 
-        which are dominating or dominated by each other.
-        """
-        for front in self.population.fronts:
-            if len(front) > 0:
-                solutions_number = len(front)
-
-                for individual in front:
-                    individual.crowding_distance = 0
-
-                front.sort(key=lambda individual: individual.get_fitness())
-                front[0].crowding_distance = 10 ** 9
-                front[solutions_number - 1].crowding_distance = 10 ** 9
-
-                fitness_values = [individual.get_fitness() for individual in front]
-                scale = max(fitness_values) - min(fitness_values)
-                if scale == 0: 
-                    scale = 1
-
-                for i in range(1, solutions_number - 1):
-                    front[i].crowding_distance += (front[i + 1].get_fitness() - front[i - 1].get_fitness()) / scale
-
-    def create_new_population(self, new_population):  # TODO: add typing and docstring
-        """Tournament, crossover and mutation"""
         while new_population.get_size() < self.population.get_size():
-            for front in self.population.fronts:
-                print("Perform: Tournament...")
-                partner_one = self.tournament_select(front)
-                partner_two = partner_one
-                while partner_one == partner_two:
-                        partner_two = self.tournament_select(front)
+            print("Perform: Tournament...")
+            partner_one = self.tournament_select()
+            partner_two = partner_one
+            while partner_one == partner_two:
+                    partner_two = self.tournament_select()
 
-                print("Perform: Crossover...")
-                child = partner_one.crossover(partner_two)
+            print("Perform: Crossover...")
+            child = partner_one.crossover(partner_two)
 
-                print("Perform: Mutation...")
-                child.mutate()
+            print("Perform: Mutation...")
+            child.mutate()
 
-                new_population.add_individual(child)
+            new_population.add_individual(child)
         
         return new_population
     
-    def tournament_select(self, front):  # TODO: add typing and docstring
+    def tournament_select(self):  # TODO: add typing and docstring
         """
 
 
         :return self.population.__class__: fittest 
         """
-        front_tournament_size = self.tournament_size
-        if front_tournament_size > self.population.get_front_size(front):
-            front_tournament_size = self.population.get_front_size(front)
+        current_tournament_size = self.tournament_size
+        if current_tournament_size > self.population.get_size():
+            current_tournament_size = self.population.get_size()
         
-        if front_tournament_size < 2:
+        if current_tournament_size < 2:
             # Number of partners defined by tournament_size value
+            print("Front type: {}".format(type(self.population.get_front(front_index))))
+            print("Front size: {}".format(len(self.population.get_front(front_index))))
+            print("Front size for population: {}".format(self.population.get_front_size(front_index)))
+            print("Front: {}".format(self.population.get_front(front_index)))
+            for i in random.sample(range(self.population.get_front_size(front_index)), self.population.get_front_size(front_index)):
+                print("Type of i in for: {}".format(type(i)))
+                break
             random_crossover_partners=[
-                    self.population.fronts[front][i] \
-                    for i in random.sample(range(self.population.get_front_size(front)), front_tournament_size)
+                    self.population[i] for i in random.sample(range(self.population.get_size()), current_tournament_size)
                 ]
 
             tournament_participants = self.get_population_type()(
@@ -174,11 +250,16 @@ class NSGANet(GeneticAlgorithm):
             # fittest_individual_from_tournament = tournament_participants.get_fittest()  # TODO: rethink overwright population class
             fittest_individual = None
             for participant in tournament_participants.individuals:
-                if fittest_individual is None or (participant.crowding_operator(fittest_individual)):
+                if fittest_individual is None or (self.crowding_operator(participant, fittest_individual)):
                     fittest_individual = participant
         else:
-            fittest_individual = self.population.fronts[front][0]
+            fittest_individual = self.population.individuals[0]
 
         return fittest_individual
-
     
+    def crowding_operator(self, individual, other_individual):  # TODO: add typing and docstring
+        first_individual_higher_rank = individual.rank < other_individual.rank
+        individuals_equal_rank = individual.rank == other_individual.rank
+        first_individual_crowding_distance = individual.crowding_distance > other_individual.crowding_distance
+
+        return first_individual_higher_rank or (individuals_equal_rank and first_individual_crowding_distance)

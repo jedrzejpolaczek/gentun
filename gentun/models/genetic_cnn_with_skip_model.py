@@ -247,12 +247,12 @@ class GeneticCnnWithSkipModel(GentunModel):
         kfold = StratifiedKFold(n_splits=self.kfold, shuffle=True)
 
         for fold, (train, validation) in enumerate(kfold.split(self.x_train, np.where(self.y_train == 1)[1])):
-            print("KFold {}/{}".format(fold + 1, self.kfold))
+            # print("KFold {}/{}".format(fold + 1, self.kfold))
             self.reset_weights()
 
             for epochs, learning_rate in zip(self.epochs, self.learning_rate):
-                print("Training {} epochs with learning rate {}".format(epochs, learning_rate))
-                self.model.compile(optimizer=Adam(lr=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
+                # print("Training {} epochs with learning rate {}".format(epochs, learning_rate))
+                self.model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
                 self.model.fit(
                     self.x_train[train], 
                     self.y_train[train], 

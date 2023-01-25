@@ -116,8 +116,7 @@ class GeneticCnnWithSkipIndividual(Individual):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         
-        self.domination_count = None
-        self.dominated_solutions = None
+        self.fitness = None
         self.rank = None
         self.crowding_distance = None
 
@@ -199,7 +198,7 @@ class GeneticCnnWithSkipIndividual(Individual):
             self.kfold, self.epochs, self.learning_rate, self.batch_size
         )
 
-        self.fitness = model.cross_validate()
+        self.fitness = [model.cross_validate()]
 
     def get_additional_parameters(self) -> dict:
         """
@@ -271,21 +270,3 @@ class GeneticCnnWithSkipIndividual(Individual):
             self.x_train, self.y_train, self.genome, child_genes, self.crossover_rate, self.mutation_rate,
             **self.get_additional_parameters()
         )
-
-    def dominates(self, other_individual):  # TODO: add typing and docstring
-        # TODO: check it
-        # and_condition = True
-        # or_condition = False
-        # for first, second in zip(self.objectives, other_individual.objectives):
-        #     and_condition = and_condition and first <= second
-        #     or_condition = or_condition or first < second
-        # return (and_condition and or_condition)
-
-        return (self.get_fitness() < other_individual.get_fitness())
-    
-    def crowding_operator(self, other_individual):  # TODO: add typing and docstring
-        first_individual_higher_rank = self.rank < other_individual.rank
-        individuals_equal_rank = self.rank == other_individual.rank
-        first_individual_crowding_distance = self.crowding_distance > other_individual.crowding_distance
-
-        return first_individual_higher_rank or (individuals_equal_rank and first_individual_crowding_distance)

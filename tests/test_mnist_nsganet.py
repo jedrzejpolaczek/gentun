@@ -14,8 +14,11 @@ if __name__ == '__main__':
     import mnist
     import random
 
+    import os
     import tensorflow
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     tensorflow.keras.utils.disable_interactive_logging()
+    # tensorflow.keras.utils.disable_logging()
 
     from sklearn.preprocessing import LabelBinarizer
     from gentun import Population
@@ -40,7 +43,7 @@ if __name__ == '__main__':
         crossover_rate=0.3, 
         mutation_rate=0.1,
         additional_parameters={
-            'kfold': 5, 
+            'kfold': 2, 
             'epochs': (5, 1), 
             'learning_rate': (1e-3, 1e-4), 
             'batch_size': 32

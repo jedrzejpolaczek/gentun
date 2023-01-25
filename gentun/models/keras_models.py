@@ -140,7 +140,7 @@ class GeneticCnnModel(GentunModel):
             self.reset_weights()
             for epochs, learning_rate in zip(self.epochs, self.learning_rate):
                 print("Training {} epochs with learning rate {}".format(epochs, learning_rate))
-                self.model.compile(optimizer=Adam(lr=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
+                self.model.compile(optimizer=Adam(learning_rate=learning_rate), loss='binary_crossentropy', metrics=['accuracy'])
                 self.model.fit(
                     self.x_train[train], self.y_train[train], epochs=epochs, batch_size=self.batch_size, verbose=1
                 )

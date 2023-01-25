@@ -40,8 +40,6 @@ class Population(object):
             assert all([type(individual) is self.species for individual in individual_list])
             self.population_size = len(individual_list)
             self.individuals = individual_list
-        
-        self.fronts = []  # TODO: rethink if this should go here
 
     def add_individual(self, individual):
         assert type(individual) is self.species
@@ -53,12 +51,6 @@ class Population(object):
 
     def get_size(self):
         return self.population_size
-    
-    def get_fronts_size(self):  # TODO: rethink if this should go here
-        return len(self.fronts)
-    
-    def get_front_size(self, front):  # TODO: rethink if this should go here
-        return len(front)
 
     def get_fittest(self):
         if self.maximize:
