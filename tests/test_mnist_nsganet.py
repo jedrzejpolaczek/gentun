@@ -22,7 +22,7 @@ if __name__ == '__main__':
     tensorflow.keras.utils.disable_interactive_logging()
     from loguru import logger
     logger.remove()
-    logger.add(sys.stderr, level="INFO")
+    logger.add(sys.stderr, level="DEBUG")
 
     from sklearn.preprocessing import LabelBinarizer
     from gentun import Population

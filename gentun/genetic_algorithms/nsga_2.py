@@ -121,7 +121,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
             if len(current_front) == 0:
                 logger.debug("Current front have no individuals. Therefore we stop looking for new fronts.")
                 break
-            self.guard("fronts", current_front)
+            self.guard("fast_nondominated_sort", "front", current_front)
             fronts.append(current_front)
 
             for individual in current_front:

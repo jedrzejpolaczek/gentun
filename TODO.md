@@ -5,3 +5,4 @@ TODO:
 3. Napisać testy sprawdzajace czy NSGANet działa jak powinien
 4. Napisać jupyter notebook'a z wyjasnieniem NSGA-2
 5. Napisać testy dla NSGANet pod CIFAR10
+6. Dopisać bayesian_optimization_algorithm
