@@ -3,9 +3,6 @@
 NSGANet class.
 """
 
-import random
-import functools
-import numpy as np
 from loguru import logger
 
 try:
@@ -18,9 +15,14 @@ except ImportError:
     pass
 
 
-class NSGANet(NSGA2):  # TODO: add typing and docstring
+class NSGANet(NSGA2):
     """
-    Genetic algorithm used in the Neural Architecture Search using Multi-Objective Genetic Algorithm paper.
+    Class contain implementation of:
+    Genetic algorithm used in the NSGA-Net: Neural Architecture Search using Multi-Objective Genetic Algorithm papers by
+    Zhichao Lu, Ian Whalen, Vishnu Boddeti, Yashesh Dhebar, Kalyanmoy Deb, Erik Goodman and Wolfgang Banzhaf from
+    Michigan State University.
+
+    Link to the papers: https://arxiv.org/pdf/1810.03522.pdf
     """
 
     def __init__(self, population, crossover_probability: float=0.2, mutation_probability: float=0.8):
@@ -28,7 +30,14 @@ class NSGANet(NSGA2):  # TODO: add typing and docstring
         self.crossover_probability = crossover_probability
         self.mutation_probability = mutation_probability
     
-    def run(self, max_generations):  # TODO: add typing and docstring
+    def run(self, max_generations: int) -> None:
+        """
+        Execute the main genetic algorithm loop established a number of times.
+        The main genetic algorithm loop contains evolving population method.
+        At the end use Bayesian optimization algorithm on ricieved population.
+
+        :param max_generations (int): value to set how many times the main genetic algorithm loop need to be done.
+        """
         logger.info("Start exploration phase.")
         while self.generation <= max_generations:
             self.evolve_population()

@@ -16,7 +16,12 @@ except ImportError:
 
 class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
     """
-    A fast and elitist multiobjective genetic algorithm: NSGA-II (Non-dominated Sorting Genetic Algorithm).
+    Class contain implementation of:
+    A fast elitist non-dominated sorting genetic algorithm for multi-objective optimization: NSGAII 
+    (Non-dominated Sorting Genetic Algorithm) by Kalyanmoy Deb, Samir Agrawal, Amrit Pratap, and T Meyarivan from
+    Kanpur Genetic Algorithms Laboratory (KanGAL) Indian Institute of Technology Kanpur.
+
+    Link to the papers: http://repository.ias.ac.in/83498/1/2-a.pdf
     """
 
     def __init__(self, population, crossover_probability: float=0.2, mutation_probability: float=0.8):
@@ -29,7 +34,13 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
         self.crowding_distance_metrics = None
         self.non_domiated_sorted_indicies = None
     
-    def run(self, max_generations):  # TODO: add typing and docstring
+    def run(self, max_generations: int) -> None:
+        """
+        Execute the main genetic algorithm loop established a number of times.
+        The main genetic algorithm loop contains evolving population method.
+
+        :param max_generations (int): value to set how many times the main genetic algorithm loop need to be done.
+        """
         logger.info("Starting genetic algorithm.")
         while self.generation <= max_generations:
             self.evolve_population()
@@ -46,7 +57,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
         logger.info("Fittest individual is: {}".format(self.population.get_fittest()))
         logger.info("Fitness value is: {}".format((self.population.get_fittest().get_fitness())))
 
-        logger.debug("Calculate fitnesses.")
+        # Calculate fitnesses
         self.fitnesses = self.calculate_fitnesses()
 
         # Calculate the pareto fronts
@@ -67,43 +78,19 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
         # Saving new population in place of current population
         self.population.individuals = new_population
 
-    def get_fitnesses(self) -> np.array:  # TODO: add typing and docstring
-        if self.fitnesses == None:
-            self.fitnesses = self.calculate_fitnesses()
-        
-        return self.fitnesses
-    
-    def get_fronts(self) -> list:  # TODO: add typing and docstring
-        if self.fronts == None:
-            self.fronts = self.fast_nondominated_sort()
-        
-        return self.fronts
-    
-    def get_ranks(self) -> list:  # TODO: add typing and docstring
-        if self.ranks == None:
-            self.ranks = self.fronts_to_nondomination_ranks()
-        
-        return self.ranks
-    
-    def get_crowding_distance_metrics(self) -> list:  # TODO: add typing and docstring
-        if self.crowding_distance_metrics == None:
-            self.crowding_distance_metrics = self.calculate_crowding_distance_metrics()
-        
-        return self.crowding_distance_metrics
+        self.guard("evolve_population", "self.population.individuals", self.population.individuals)
     
     def calculate_fitnesses(self) -> np.array:  # TODO: add typing and docstring
         fitnesses = []
         for individual in self.population.individuals:
             fitnesses.append(individual.get_fitness())
-        
-        assert self.population.get_size() == len(fitnesses)
 
-        logger.debug("Fitnesses (type {} and size {}): \n{}".format(type(fitnesses), len(fitnesses), fitnesses))
+        self.guard("normalize_fitnesses", "fitnesses", len(fitnesses), self.population.get_size())
         return np.array(fitnesses)
     
     def normalize_fitnesses(self) -> np.array:  # TODO: add typing and docstring
         self.fitnesses = (self.fitnesses - np.min(self.fitnesses)) / (np.max(self.fitnesses) - np.min(self.fitnesses))
-        logger.debug("Normalize fitnesses (type {} and size {}): {}".format(type(self.fitnesses), len(self.fitnesses), self.fitnesses))
+        self.guard("normalize_fitnesses", "fitnesses", self.fitnesses)
     
     def fast_nondominated_sort(self) :  # TODO: add typing and docstring
         """
@@ -113,7 +100,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
 
         :return list: fronts is a list of fronts, each front contain index of each individual for self.population.individuals
         """
-        logger.debug("Calculate dominated set for each individual.")
+        # Calculate dominated set for each individual
         domination_sets = []
         domination_counts = []
         for individual in self.population.individuals:
@@ -134,7 +121,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
             if len(current_front) == 0:
                 logger.debug("Current front have no individuals. Therefore we stop looking for new fronts.")
                 break
-            logger.debug("Front (type {} and size {}): {}".format(type(current_front), len(current_front), current_front))
+            self.guard("fronts", current_front)
             fronts.append(current_front)
 
             for individual in current_front:
@@ -144,7 +131,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
                 for dominated_by_current in dominated_by_current_set:
                     domination_counts[dominated_by_current] -= 1
         
-        logger.debug("Front (type {} and size {}): {}".format(type(fronts), len(fronts), fronts))
+        self.guard("fast_nondominated_sort", "fronts", fronts)
         return fronts
     
     def dominates(self, individual, other_individual):  # TODO: add typing and docstring
@@ -163,6 +150,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
             for x in front:   
                 nondomination_rank_dict[x] = i
 
+        self.guard("fronts_to_nondomination_ranks", "nondomination_rank_dict", nondomination_rank_dict)
         return nondomination_rank_dict
 
     def calculate_crowding_distance_metrics(self):  # TODO: add typing and docstring
@@ -182,14 +170,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
         # Calculate crowding distance metrics
         for front in self.fronts:
             for objective_i in range(number_of_objectives):
-                # logger.debug("fitnesses (type: {}): {}".format(type(self.fitnesses), self.fitnesses))
-                # logger.debug("front (type: {}): {}".format(type(front), front))
-                # logger.debug("objective_i (type: {}): {}".format(type(objective_i), objective_i))
-                
                 sorted_front = sorted(front, key = lambda x : self.fitnesses[x, objective_i])
-                # logger.debug("sorted_front (type: {}): {}".format(type(sorted_front), sorted_front))
-                # logger.debug("sorted_front[0] (type: {}): {}".format(type(sorted_front[0]), sorted_front[0]))
-                # logger.debug("sorted_front[-1] (type: {}): {}".format(type(sorted_front[-1]), sorted_front[-1]))
 
                 crowding_distance_metrics[sorted_front[0]] = np.inf
                 crowding_distance_metrics[sorted_front[-1]] = np.inf
@@ -197,8 +178,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
                     for i in range(1,len(sorted_front)-1):
                         crowding_distance_metrics[sorted_front[i]] += self.fitnesses[sorted_front[i+1], objective_i] - self.fitnesses[sorted_front[i-1], objective_i]
 
-        assert len(crowding_distance_metrics) == number_of_individuals
-        logger.debug("crowding_distance_metrics (type: {}): {}".format(type(crowding_distance_metrics), crowding_distance_metrics))
+        self.guard("calculate_crowding_distance_metrics", "crowding_distance_metrics", len(crowding_distance_metrics), number_of_individuals)
         return crowding_distance_metrics
     
     def nondominated_sort(self):  # TODO: add typing and docstring
@@ -210,7 +190,6 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
             # returns 1 if a dominates b, or if they equal, but a is less crowded
             # return -1 if b dominates a, or if they equal, but b is less crowded
             # returns 0 if they are equal in every sense
-            
             
             if self.ranks[a] > self.ranks[b]:  # domination rank, smaller better
                 return -1
@@ -228,7 +207,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
         # decreasing order, the best is the first
         non_domiated_sorted_indicies = sorted(indicies, key = functools.cmp_to_key(nondominated_compare), reverse=True)
 
-        logger.debug("non_domiated_sorted_indicies (type: {}): {}".format(type(non_domiated_sorted_indicies), non_domiated_sorted_indicies))
+        self.guard("nondominated_sort", "non_domiated_sorted_indicies", non_domiated_sorted_indicies)
         return non_domiated_sorted_indicies
 
     def create_new_population(self):  # TODO: add typing and docstring
@@ -251,8 +230,7 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
 
         new_population = surviving_individuals + offsprings
         
-        assert len(new_population) == self.population.get_size()
-        logger.debug("new_population (type: {}): {}".format(type(new_population), new_population))
+        self.guard("create_new_population", "new_population", len(new_population), self.population.get_size())
         return new_population
     
     def tournament_select(self):  # TODO: add typing and docstring
@@ -268,5 +246,11 @@ class NSGA2(GeneticAlgorithm):  # TODO: add typing and docstring
 
         fittest_individual = tournament.get_fittest()
 
-        logger.debug("fittest_individual (type: {}): {}".format(type(fittest_individual), fittest_individual))
+        self.guard("tournament_select", "fittest_individual", fittest_individual)
         return tournament.get_fittest()
+
+    @staticmethod
+    def guard(fun_name, name, main_object, object_to_compare=None):  # TODO: add typing and docstring
+        if object_to_compare is not None:
+            assert main_object == object_to_compare
+        logger.debug("{}:{} (type: {}): {}".format(fun_name, name, type(main_object), main_object))
