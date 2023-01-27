@@ -14,12 +14,12 @@ except ImportError:
     pass
 
 try:
-    from ..models.genetic_cnn_with_skip_model import GeneticCnnWithSkipModel
+    from ..models.binary_string_network_representation_with_skip_bit_model import BinaryStringNetworkRepresentationWithSkipBitModel
 except ImportError:
     pass
 
-
-class GeneticCnnWithSkipIndividual(Individual):
+ 
+class BinaryStringNetworkRepresentationWithSkipBitIndividual(Individual):
     """
     Individual of individauls for Neural Network leyars proposed in article:
     NSGA-Net: Neural Architecture Search using Multi-Objective Genetic Algorithm
@@ -102,7 +102,7 @@ class GeneticCnnWithSkipIndividual(Individual):
             genes = self.generate_random_genes(genome)
 
         # Set individual's attributes
-        super(GeneticCnnWithSkipIndividual, self).__init__(x_train, y_train, genome, genes, crossover_rate, mutation_rate)
+        super(BinaryStringNetworkRepresentationWithSkipBitIndividual, self).__init__(x_train, y_train, genome, genes, crossover_rate, mutation_rate)
 
         self.nodes_per_stage = nodes_per_stage
         self.input_shape = input_shape
@@ -115,10 +115,6 @@ class GeneticCnnWithSkipIndividual(Individual):
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        
-        self.fitness = None
-        self.rank = None
-        self.crowding_distance = None
 
     @staticmethod
     def generate_random_genome(nodes_per_stage: tuple) -> dict:
@@ -192,7 +188,7 @@ class GeneticCnnWithSkipIndividual(Individual):
 
     def evaluate_fitness(self) -> None:
         """Create model and perform cross-validation."""
-        model = GeneticCnnWithSkipModel(
+        model = BinaryStringNetworkRepresentationWithSkipBitModel(
             self.x_train, self.y_train, self.genes, self.nodes_per_stage, self.input_shape, self.kernels_per_layer,
             self.kernel_sizes, self.dense_units, self.dropout_probability, self.classes,
             self.kfold, self.epochs, self.learning_rate, self.batch_size
@@ -217,11 +213,7 @@ class GeneticCnnWithSkipIndividual(Individual):
             'kfold': self.kfold,
             'epochs': self.epochs,
             'learning_rate': self.learning_rate,
-            'batch_size': self.batch_size,
-            'domination_count': self.domination_count,
-            'dominated_solutions': self.dominated_solutions,
-            'rank': self.rank,
-            'crowding_distance': self.crowding_distance
+            'batch_size': self.batch_size
         }
 
     def mutate(self) -> None:

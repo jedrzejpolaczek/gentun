@@ -7,9 +7,10 @@ from .client import GentunClient
 try:
     from .genetic_algorithms.genetic_algorithm import GeneticAlgorithm
     from .genetic_algorithms.russian_roulette_genetic_algorithm import RussianRouletteGA
+    from .genetic_algorithms.nsga_2 import NSGA2
     from .genetic_algorithms.nsga_net import NSGANet
 except ImportError:
-    print("Warning: install genetic algorithms to use GeneticAlgorithm, RussianRouletteGA and NSGANet.")
+    print("Warning: install genetic algorithms to use GeneticAlgorithm, RussianRouletteGA, NSGA2 and NSGANet.")
 
 # xgboost individuals and models
 try:
@@ -27,8 +28,8 @@ except ImportError:
 
 # Keras X0 individuals and models
 try:
-    from .individuals.genetic_cnn_with_skip_individual import GeneticCnnWithSkipIndividual
-    from .models.genetic_cnn_with_skip_model import GeneticCnnWithSkipModel
+    from .individuals.binary_string_network_representation_with_skip_bit_individual import BinaryStringNetworkRepresentationWithSkipBitIndividual
+    from .models.binary_string_network_representation_with_skip_bit_model import BinaryStringNetworkRepresentationWithSkipBitModel
 except ImportError:
     print("Warning: install Keras and TensorFlow to use GeneticCnnIndividual and GeneticCnnModel.")
 

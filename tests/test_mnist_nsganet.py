@@ -10,19 +10,23 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+
 if __name__ == '__main__':
     import mnist
     import random
 
     import os
+
     import tensorflow
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     tensorflow.keras.utils.disable_interactive_logging()
-    # tensorflow.keras.utils.disable_logging()
+    from loguru import logger
+    logger.remove()
+    logger.add(sys.stderr, level="INFO")
 
     from sklearn.preprocessing import LabelBinarizer
     from gentun import Population
-    from gentun.individuals.genetic_cnn_with_skip_individual import GeneticCnnWithSkipIndividual
+    from gentun.individuals.binary_string_network_representation_with_skip_bit_individual import BinaryStringNetworkRepresentationWithSkipBitIndividual
     from gentun.genetic_algorithms.nsga_net import NSGANet
 
     train_images = mnist.train_images()
@@ -36,15 +40,15 @@ if __name__ == '__main__':
     x_train = x_train / 255  # Normalize train data
 
     population = Population(
-        GeneticCnnWithSkipIndividual, 
+        BinaryStringNetworkRepresentationWithSkipBitIndividual, 
         x_train, 
         y_train, 
-        size=100, 
+        size=20, 
         crossover_rate=0.3, 
         mutation_rate=0.1,
         additional_parameters={
             'kfold': 2, 
-            'epochs': (5, 1), 
+            'epochs': (3, 1), 
             'learning_rate': (1e-3, 1e-4), 
             'batch_size': 32
         }, 
@@ -52,4 +56,4 @@ if __name__ == '__main__':
     )
     ga = NSGANet(population, crossover_probability=0.2, mutation_probability=0.8)
 
-    ga.run(50)
+    ga.run(max_generations=5)
