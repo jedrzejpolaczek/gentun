@@ -39,7 +39,7 @@ if __name__ == '__main__':
         GeneticCnnWithSkipIndividual, 
         x_train, 
         y_train, 
-        size=20, 
+        size=100, 
         crossover_rate=0.3, 
         mutation_rate=0.1,
         additional_parameters={
